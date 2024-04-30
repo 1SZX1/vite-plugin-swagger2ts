@@ -10,7 +10,7 @@ import { generateDocs, generatorMethodType, getApiName, getPathsName } from "./g
 import { CODE_PREFIX, pluginName } from "./config";
 
 async function loadSwaggerSource(options: ResolvedOptions) {
-    const { swaggerUrl, jsonUrl, jsonPath, output, formatDocs, formatSchema } = options;
+    const { swaggerUrl, jsonUrl, jsonPath, jsonLoader, output, formatDocs, formatSchema } = options;
 
     async function genInterface(docs: SwaggerDoc | OpenAPIObject, docsName: string) {
         docs = formatDocs ? formatDocs(docs) : docs;
@@ -41,6 +41,16 @@ async function loadSwaggerSource(options: ResolvedOptions) {
         const sources: Pick<SwaggerSource, 'name'>[] = []
         const interfaces: string[] = []
 
+        async function loadSwaggerJson(swaggerJson: OpenAPIObject) {
+            if (swaggerJson.info) {
+                const name = getApiName(swaggerJson)
+                interfaces.push(await genInterface(swaggerJson, name))
+                sources.push({ name })
+            } else {
+                console.log(chalk.yellow(`[${pluginName}]: jsonUrl error;`) + JSON.stringify(swaggerJson))
+            }
+        }
+
         if (typeof swaggerUrl === 'string') {
             const resources = (await fetchUrl(`${swaggerUrl}/swagger-resources;`).catch((error) => error));
             if (Array.isArray(resources)) {
@@ -53,22 +63,17 @@ async function loadSwaggerSource(options: ResolvedOptions) {
 
         if (typeof jsonUrl === 'string') {
             const swaggerJson: OpenAPIObject = await fetchUrl(jsonUrl)
-            if (swaggerJson.info) {
-                const name = getApiName(swaggerJson)
-                interfaces.push(await genInterface(swaggerJson, name))
-                sources.push({ name })
-            } else {
-                console.log(chalk.yellow(`[${pluginName}]: jsonUrl error;`) + JSON.stringify(swaggerJson))
-            }
+            loadSwaggerJson(swaggerJson)
         }
+
+        if (jsonLoader)
+            loadSwaggerJson(await jsonLoader())
 
         if (typeof jsonPath === 'string') {
             const _jsonPath = resolve(process.cwd(), jsonPath)
             const swaggerJson: OpenAPIObject = JSON.parse(readFileSync(_jsonPath, { encoding: 'utf-8' }))
 
-            const name = getApiName(swaggerJson)
-            interfaces.push(await genInterface(swaggerJson, name))
-            sources.push({ name })
+            loadSwaggerJson(swaggerJson)
         }
 
         return { sources, interfaces }

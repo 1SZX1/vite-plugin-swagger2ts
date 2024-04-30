@@ -16,6 +16,11 @@ export interface Options {
      * openApi 本地json
      */
     jsonPath?: string;
+    /**
+     * 加载json的方法
+     */
+    jsonLoader?: () => OpenAPIObject | Promise<OpenAPIObject>;
+
     output?: string;
     formatDocs?: (docs: SwaggerDoc | OpenAPIObject) => typeof docs;
     formatSchema?: FormatSchema;
