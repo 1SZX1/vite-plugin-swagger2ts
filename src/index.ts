@@ -63,24 +63,24 @@ async function loadSwaggerSource(options: ResolvedOptions) {
 
         if (typeof jsonUrl === 'string') {
             const swaggerJson: OpenAPIObject = await fetchUrl(jsonUrl)
-            loadSwaggerJson(swaggerJson)
+            await loadSwaggerJson(swaggerJson)
         }
 
         if (jsonLoader)
-            loadSwaggerJson(await jsonLoader())
+            await loadSwaggerJson(await jsonLoader())
 
         if (typeof jsonPath === 'string') {
             const _jsonPath = resolve(process.cwd(), jsonPath)
             const swaggerJson: OpenAPIObject = JSON.parse(readFileSync(_jsonPath, { encoding: 'utf-8' }))
 
-            loadSwaggerJson(swaggerJson)
+            await loadSwaggerJson(swaggerJson)
         }
 
         return { sources, interfaces }
     }
     const { sources, interfaces } = await getSources()
+    
     if (!interfaces.length) return
-
     const code = interfaces.reduce((a, b) => a + b, '')
     const suffix = interfaces.reduce((a, b, index) => {
         if (b) {
