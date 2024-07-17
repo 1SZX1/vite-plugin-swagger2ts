@@ -118,7 +118,7 @@ export function generatorSchemaType(
     } else if (properties && !isTypeAny(properties)) {
         // 对象
         result += `{${Object.entries(properties)
-            .map(([pName, _schema]) => generatorSchemaType(pName, _schema, { isRequired: !required || required.includes(pName) ? true : false, docsName }))
+            .map(([pName, _schema]) => generatorSchemaType(pName, _schema, { isRequired: !!required && required.includes(pName) ? true : false, docsName }))
             .join("")}\n}`;
     } else if (oneOf) {
         // 联合类型
