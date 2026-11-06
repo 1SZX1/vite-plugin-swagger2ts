@@ -454,4 +454,63 @@ title: string;
 };
 `);
     });
+
+    test("generate anyOf with nullable schema", async () => {
+        const str = await generatorSchemaType("data", {
+            description: "业务返回数据，结构因接口而异。",
+            anyOf: [
+                {
+                    allOf: [
+                        {
+                            $ref: "#/components/schemas/DecorationPageViews_Address"
+                        }
+                    ],
+                    description: "业务返回数据，结构因接口而异。"
+                },
+                {
+                    type: ["object", "null"],
+                    enum: [null],
+                    properties: {}
+                }
+            ]
+        }, { docsName: "默认模块" });
+
+        expect(str).toEqual(`
+/**
+ * @description 业务返回数据，结构因接口而异。
+ **/
+'data': 默认模块ComponentsSchemasDecorationPageViews_Address;
+`);
+    });
+
+    test("generate boolean enum", async () => {
+        const str = await generatorSchemaType("success", {
+            type: "boolean",
+            description: "业务是否成功",
+            enum: [true]
+        });
+
+        expect(str).toEqual(`
+/**
+ * @description 业务是否成功
+ **/
+'success': true;
+`);
+    });
+
+    test("generate array type with null", async () => {
+        const str = await generatorSchemaType("pageType", {
+            type: ["integer", "null"],
+            description: "页面类型",
+            format: "int32"
+        });
+
+        expect(str).toEqual(`
+/**
+ * @description 页面类型
+ * @format int32
+ **/
+'pageType': number;
+`);
+    });
 });

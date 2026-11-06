@@ -89,6 +89,15 @@ const TYPES = {
     array: "array"
 };
 
+function isNullSchema(s: any): boolean {
+    if (!s || typeof s !== "object") return false;
+    if (s.type === "null") return true;
+    if (Array.isArray(s.type) && s.type.length === 1 && s.type[0] === "null") return true;
+    if (Array.isArray(s.type) && s.type.includes("null") && s.enum && s.enum.length === 1 && s.enum[0] === null) return true;
+    if (s.enum && s.enum.length === 1 && s.enum[0] === null && (!s.type || s.type === "null" || (Array.isArray(s.type) && s.type.includes("null")))) return true;
+    return false;
+}
+
 interface GeneratorSchemaTypeOption {
     isRoot?: boolean;
     isRequired?: boolean;
@@ -104,14 +113,14 @@ export function generatorSchemaType(
         return `${key && `\n${key}${isRequired === false ? "?" : ""}: `}any${key && `;`}`;
     }
 
-    const { type, $ref, enum: Enum, items, properties, oneOf, additionalProperties, required, allOf } = schema as SchemaObject;
+    const { type, $ref, enum: Enum, items, properties, oneOf, anyOf, additionalProperties, required, allOf } = schema as any;
     let result = "";
     if ($ref) {
         // 引用
         result = getRefName($ref, docsName);
     } else if (Enum) {
         // 枚举
-        result = `${Enum.map((t) => `"${t}"`).join(" | ")}`;
+        result = `${Enum.map((t: any) => (typeof t === "string" ? `"${t}"` : `${t}`)).join(" | ")}`;
     } else if (items) {
         // 数组
         result = `${generatorSchemaType("", items, { docsName })}[]`;
@@ -122,11 +131,18 @@ export function generatorSchemaType(
             .join("")}\n}`;
     } else if (oneOf) {
         // 联合类型
-        result = `${oneOf.map((_schema) => `${generatorSchemaType("", _schema, { docsName })}`).join(" | ")}`;
+        const validOneOf = oneOf.filter((_schema: any) => !isNullSchema(_schema));
+        const list = validOneOf.length > 0 ? validOneOf : oneOf;
+        result = `${list.map((_schema: any) => `${generatorSchemaType("", _schema, { docsName })}`).join(" | ")}`;
+    } else if (anyOf) {
+        // 联合类型
+        const validAnyOf = anyOf.filter((_schema: any) => !isNullSchema(_schema));
+        const list = validAnyOf.length > 0 ? validAnyOf : anyOf;
+        result = `${list.map((_schema: any) => `${generatorSchemaType("", _schema, { docsName })}`).join(" | ")}`;
     } else if (allOf) {
         // 交叉类型
-        result = `${allOf.map((_schema) => generatorSchemaType("", _schema, { docsName })).join(" & ")}`;
-    } else if (type === "object" && !result) {
+        result = `${allOf.map((_schema: any) => generatorSchemaType("", _schema, { docsName })).join(" & ")}`;
+    } else if ((type === "object" || (Array.isArray(type) && type.includes("object"))) && !result) {
         // additionalProperties
         if (additionalProperties) {
             result = `{${generatorSchemaType("[x: string | number]", additionalProperties, { docsName })}\n}`;
@@ -135,7 +151,18 @@ export function generatorSchemaType(
         }
     } else {
         // 基本类型，如果没有在基础类型里面默认为 string
-        result = TYPES[type as keyof typeof TYPES] || "string";
+        if (Array.isArray(type)) {
+            const types = type.filter((t: any) => t !== "null");
+            if (types.length > 0) {
+                result = types.map((t: any) => TYPES[t as keyof typeof TYPES] || "string").join(" | ");
+            } else if (type.includes("null")) {
+                result = "null";
+            } else {
+                result = "string";
+            }
+        } else {
+            result = TYPES[type as keyof typeof TYPES] || "string";
+        }
     }
     if (!key) {
         return result;
