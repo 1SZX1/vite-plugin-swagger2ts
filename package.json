@@ -11,7 +11,8 @@
     "homepage": "https://github.com/1SZX1/vite-plugin-swagger2ts",
     "bugs": "https://github.com/1SZX1/vite-plugin-swagger2ts/issues",
     "publishConfig": {
-        "registry": "https://registry.npmjs.org"
+        "registry": "https://registry.npmjs.org",
+        "access": "public"
     },
     "files": [
         "dist"
