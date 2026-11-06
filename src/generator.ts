@@ -177,8 +177,10 @@ export function generatorParameterType(schemas: ParameterObject, docsName?: stri
 }
 export function generatorRequestBodyType(schemas: RequestBodyObject, docsName?: string): string {
     const { description, content, required } = schemas;
-    const schema = content && Object.values(content)[0]?.["schema"];
+    let schema = content && Object.values(content)[0]?.["schema"];
     if (!schema) return "";
+    if ("properties" in schema)
+        schema = { ...schema, required: schema.required || [] };
     const result = generatorSchemaType("", schema, { docsName });
     return jsDoc({ description }, { key: "body", result, isRequired: required });
 }
